@@ -60,6 +60,34 @@ app.post('/register', async (req, res) => {
   }
 });
 
+// Search Users
+app.get('/users/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.json([]);
+
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        username: {
+          contains: q,
+          mode: 'insensitive',
+        },
+      },
+      take: 10,
+      select: {
+        id: true,
+        username: true,
+        avatar: true,
+        bio: true,
+      },
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
 // Get User by Username
 app.get('/users/:username', async (req, res) => {
   const { username } = req.params;

@@ -1,10 +1,30 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../config/constants.dart';
 
 class ApiService {
   static const String _baseUrl = Constants.apiUrl;
+
+  // Caching Keys
+  static const String _chatsCacheKey = 'cached_chats_';
+  static const String _messagesCacheKey = 'cached_messages_';
+  static const String _momentsCacheKey = 'cached_moments_';
+
+  static Future<void> _saveToCache(String key, dynamic data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, jsonEncode(data));
+  }
+
+  static Future<dynamic> _loadFromCache(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString(key);
+    if (cached != null) {
+      return jsonDecode(cached);
+    }
+    return null;
+  }
 
   static Future<List<User>> searchUsers(String query) async {
     if (query.isEmpty) return [];
@@ -34,7 +54,6 @@ class ApiService {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        // The API returns a list of contacts, where the nested 'contact' object is the User
         return data.map((json) => User(
           id: json['contact']['id'],
           username: json['contact']['username'],
@@ -68,44 +87,56 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getMessages(String userId1, String userId2) async {
+    final cacheKey = '$_messagesCacheKey${userId1}_$userId2';
     try {
       final response = await http.get(Uri.parse('$_baseUrl/messages/$userId1/$userId2'));
       
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        await _saveToCache(cacheKey, data);
+        return data;
       }
-      return [];
     } catch (e) {
       print('Error fetching messages: $e');
-      return [];
     }
+    
+    // Return cache if fetch fails
+    return await _loadFromCache(cacheKey) ?? [];
   }
 
   static Future<List<dynamic>> getRecentChats(String userId) async {
+    final cacheKey = '$_chatsCacheKey$userId';
     try {
       final response = await http.get(Uri.parse('$_baseUrl/chats/$userId'));
       
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        await _saveToCache(cacheKey, data);
+        return data;
       }
-      return [];
     } catch (e) {
       print('Error fetching recent chats: $e');
-      return [];
     }
+
+    // Return cache if fetch fails
+    return await _loadFromCache(cacheKey) ?? [];
   }
 
   static Future<List<dynamic>> getMomentsFeed(String userId) async {
+    final cacheKey = '$_momentsCacheKey$userId';
     try {
       final response = await http.get(Uri.parse('$_baseUrl/moments/feed/$userId'));
       
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final data = jsonDecode(response.body);
+        await _saveToCache(cacheKey, data);
+        return data;
       }
-      return [];
     } catch (e) {
       print('Error fetching moments feed: $e');
-      return [];
     }
+
+    // Return cache if fetch fails
+    return await _loadFromCache(cacheKey) ?? [];
   }
 }

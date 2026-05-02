@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import 'chat_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final String currentUserId;
@@ -15,6 +17,14 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<User> _searchResults = [];
   bool _isLoading = false;
+  Timer? _debounce;
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(query);
+    });
+  }
 
   void _performSearch(String query) async {
     if (query.isEmpty) {
@@ -41,19 +51,17 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  Future<void> _addContact(User user) async {
-    final success = await ApiService.addContact(widget.currentUserId, user.id);
+  Future<void> _openChat(User user) async {
+    // Automatically try to add as contact (API handles if already added)
+    await ApiService.addContact(widget.currentUserId, user.id);
     
     if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('@${user.username} adicionado aos contatos!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Este contato já foi adicionado ou ocorreu um erro.')),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(contact: user, currentUserId: widget.currentUserId),
+        ),
+      );
     }
   }
 
@@ -69,13 +77,10 @@ class _SearchScreenState extends State<SearchScreen> {
           controller: _searchController,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: 'Buscar novo contato...',
+            hintText: 'Buscar por @username...',
             border: InputBorder.none,
           ),
-          onChanged: (value) {
-            // A simple debounce could be implemented here
-            _performSearch(value);
-          },
+          onChanged: _onSearchChanged,
         ),
         actions: [
           IconButton(
@@ -94,12 +99,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                      const Icon(Icons.search, size: 64, color: Color(0xFFEDE9FE)),
                       const SizedBox(height: 16),
                       Text(
                         _searchController.text.isEmpty
-                            ? 'Digite um @nome para buscar'
-                            : 'Nenhum usuário encontrado',
+                            ? 'Digite um nome para encontrar pessoas'
+                            : 'Ninguém encontrado com esse nome',
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -128,19 +133,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        user.bio ?? 'Disponível no Arroba',
+                        user.bio ?? 'Pessoa do Arroba',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: ElevatedButton(
-                        onPressed: () => _addContact(user),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C3AED),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        ),
-                        child: const Text('Adicionar'),
-                      ),
+                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                      onTap: () => _openChat(user),
                     );
                   },
                 ),
@@ -150,6 +148,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 }
