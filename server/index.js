@@ -1,3 +1,4 @@
+console.log("Starting server process...");
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -8,6 +9,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 require('dotenv').config();
 
 const prisma = new PrismaClient();
+console.log("Database client initialized.");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
