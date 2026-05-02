@@ -8,6 +8,7 @@ import 'appearance_screen.dart';
 import 'create_moment_screen.dart';
 import 'contacts_screen.dart';
 import 'search_screen.dart';
+import 'edit_profile_screen.dart';
 import '../main.dart'; // Para navegar de volta pro SplashScreen caso faça logout
 
 class HomeScreen extends StatefulWidget {
@@ -433,11 +434,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSettingsList() {
     return ListView(
       children: [
-        const ListTile(
-          leading: CircleAvatar(backgroundColor: Color(0xFF7C3AED)),
-          title: Text('Meu Perfil'),
-          subtitle: Text('Editar nome, bio e foto'),
-          trailing: Icon(Icons.chevron_right),
+        ListTile(
+          leading: const CircleAvatar(backgroundColor: Color(0xFF7C3AED), child: Icon(Icons.person, color: Colors.white)),
+          title: const Text('Meu Perfil'),
+          subtitle: const Text('Editar nome, bio e foto'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => EditProfileScreen(currentUserId: widget.currentUserId)),
+            ).then((value) {
+              if (value == true) _loadData(); // Refresh if profile changed
+            });
+          },
         ),
         const Divider(),
         ListTile(

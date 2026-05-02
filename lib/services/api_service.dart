@@ -139,4 +139,37 @@ class ApiService {
     // Return cache if fetch fails
     return await _loadFromCache(cacheKey) ?? [];
   }
+
+  static Future<User?> getUserProfile(String username) async {
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/users/$username'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return User(
+          id: data['id'],
+          username: data['username'],
+          avatar: data['avatar'],
+          bio: data['bio'],
+        );
+      }
+      return null;
+    } catch (e) {
+      print('Error getting user profile: $e');
+      return null;
+    }
+  }
+
+  static Future<bool> updateUser(String userId, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$_baseUrl/users/$userId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(data),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error updating user: $e');
+      return false;
+    }
+  }
 }

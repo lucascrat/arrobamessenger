@@ -116,6 +116,37 @@ app.get('/users/:username', async (req, res) => {
   }
 });
 
+// Update User Profile
+app.patch('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const { username, email, avatar, bio, userType } = req.body;
+
+  try {
+    // Check if new username is already taken by someone else
+    if (username) {
+      const existingUser = await prisma.user.findUnique({ where: { username } });
+      if (existingUser && existingUser.id !== id) {
+        return res.status(400).json({ error: 'Username already taken' });
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        username,
+        email,
+        avatar,
+        bio,
+        userType,
+      },
+    });
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 // Generate Presigned URL for R2 Upload
 app.get('/generate-upload-url', async (req, res) => {
   const { fileName, contentType } = req.query;
