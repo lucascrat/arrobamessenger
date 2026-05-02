@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  username  String    @unique
+  email     String?   @unique
+  avatar    String?
+  bio       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  moments          Moment[]
+  contacts         Contact[] @relation("UserContacts")
+  contactOf        Contact[] @relation("ContactOf")
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  userId    String
+  contactId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserContacts", fields: [userId], references: [id])
+  contact   User     @relation("ContactOf", fields: [contactId], references: [id])
+
+  @@unique([userId, contactId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  content    String
+  timestamp  DateTime @default(now())
+  
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  isRead     Boolean  @default(false)
+}
+
+model Moment {
+  id        String   @id @default(uuid())
+  mediaUrl  String
+  caption   String?
+  timestamp DateTime @default(now())
+  expiresAt DateTime
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}

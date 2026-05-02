@@ -1,0 +1,22 @@
+Valor do token
+L6BLSsjlV_JXjC2jK4vpkafxLxM0G7ViVfI7xVaq
+
+
+Use as credenciais seguintes para clientes S3:
+ID da chave de acesso
+372bdcdff20f2696c0e139f91b04803e
+
+
+Chave de acesso secreta
+ea84b1e1ade3f2a2cefae64e143171e47232ecc7fce0c2ebe6e8d23fa4a41348
+
+
+Use pontos de extremidade específicos de jurisdição para clientes S3:
+PadrãoUnião Europeia (UE)
+
+https://b94b59f6ac6870ef08ad4ea5384fc042.r2.cloudflarestorage.com
+
+
+dominio publico
+
+https://pub-855d004e6f2d4b47804b1941f9b5cc75.r2.dev
