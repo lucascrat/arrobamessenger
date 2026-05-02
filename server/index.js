@@ -41,7 +41,7 @@ app.get('/health', (req, res) => {
 
 // Register User
 app.post('/register', async (req, res) => {
-  const { username, email, avatar, bio } = req.body;
+  const { username, email, avatar, bio, userType } = req.body;
   
   if (!username) {
     return res.status(400).json({ error: 'Username is required' });
@@ -50,8 +50,8 @@ app.post('/register', async (req, res) => {
   try {
     const user = await prisma.user.upsert({
       where: { username },
-      update: { email, avatar, bio },
-      create: { username, email, avatar, bio },
+      update: { email, avatar, bio, userType: userType || 'PERSONAL' },
+      create: { username, email, avatar, bio, userType: userType || 'PERSONAL' },
     });
     res.json(user);
   } catch (error) {

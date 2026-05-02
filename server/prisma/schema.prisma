@@ -13,6 +13,7 @@ model User {
   email     String?   @unique
   avatar    String?
   bio       String?
+  userType  String    @default("PERSONAL") // PERSONAL ou BUSINESS
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
