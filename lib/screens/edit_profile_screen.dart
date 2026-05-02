@@ -94,6 +94,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         // Update local cache
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', _usernameController.text.trim().toLowerCase());
+        if (avatarUrl != null) {
+          await prefs.setString('avatar', avatarUrl);
+        }
         
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Perfil atualizado com sucesso!')),
@@ -236,7 +239,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const Text(
                     'Informações públicas serão visíveis para todos no Arroba.',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
-                    textAlign: Center,
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

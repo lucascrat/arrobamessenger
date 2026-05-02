@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   List<dynamic> _chats = [];
   List<dynamic> _moments = [];
+  User? _currentUserProfile;
+  bool _isLoading = true;
   bool _isLoadingChats = true;
   bool _isLoadingMoments = true;
   User? _selectedContact;
@@ -35,10 +37,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
+    setState(() => _isLoading = true);
     await Future.wait([
+      _loadUserProfile(),
       _loadChats(),
       _loadMoments(),
     ]);
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadUserProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = prefs.getString('username');
+    if (username != null) {
+      final user = await ApiService.getUserProfile(username);
+      if (mounted) {
+        setState(() {
+          _currentUserProfile = user;
+        });
+      }
+    }
   }
 
   Future<void> _loadChats() async {
@@ -180,8 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
+                              children: [                                Container(
                                   padding: const EdgeInsets.all(24),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
@@ -190,7 +207,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))
                                     ],
                                   ),
-                                  child: const Text('@', style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED))),
+                                  child: CircleAvatar(
+                                    radius: 40,
+                                    backgroundColor: Colors.white,
+                                    backgroundImage: _currentUserProfile?.avatar != null ? NetworkImage(_currentUserProfile!.avatar!) : null,
+                                    child: _currentUserProfile?.avatar == null 
+                                      ? const Text('@', style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)))
+                                      : null,
+                                  ),
                                 ),
                                 const SizedBox(height: 32),
                                 const Text('Arroba Messenger para Web', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.black87)),
@@ -209,6 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
         // Mobile View (Default)
         return Scaffold(
           backgroundColor: Colors.white,
+          drawer: _buildDrawer(),
           appBar: AppBar(
             title: const Text('Arroba', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24)),
             actions: [
@@ -467,6 +492,58 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: () {},
         ),
       ],
+    );
+  }
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF7C3AED)),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              backgroundImage: _currentUserProfile?.avatar != null ? NetworkImage(_currentUserProfile!.avatar!) : null,
+              child: _currentUserProfile?.avatar == null 
+                  ? const Text('@', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)))
+                  : null,
+            ),
+            accountName: Text(
+              '@${_currentUserProfile?.username ?? "usuário"}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            accountEmail: Text(_currentUserProfile?.bio ?? "Sem bio definida"),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person_outline),
+            title: const Text('Meu Perfil'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EditProfileScreen(currentUserId: widget.currentUserId)),
+              ).then((value) {
+                if (value == true) _loadData();
+              });
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Ajustes'),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _selectedIndex = 3);
+            },
+          ),
+          const Spacer(),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Sair da Conta', style: TextStyle(color: Colors.red)),
+            onTap: () => _logout(),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
