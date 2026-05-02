@@ -21,11 +21,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  
   List<dynamic> _chats = [];
   List<dynamic> _moments = [];
   bool _isLoadingChats = true;
   bool _isLoadingMoments = true;
+  User? _selectedContact;
 
   @override
   void initState() {
@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
-  
+
   String _formatTime(String isoTime) {
     final dt = DateTime.parse(isoTime);
     final now = DateTime.now();
@@ -84,88 +84,208 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Arroba', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search), 
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SearchScreen(currentUserId: widget.currentUserId)),
-              );
-            }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isWideScreen = constraints.maxWidth > 900;
+
+        if (isWideScreen) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: Row(
+              children: [
+                // Desktop Navigation Rail (The far left strip)
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+                  labelType: NavigationRailLabelType.all,
+                  selectedIconTheme: const IconThemeData(color: Color(0xFF7C3AED)),
+                  selectedLabelTextStyle: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold),
+                  unselectedIconTheme: const IconThemeData(color: Colors.grey),
+                  destinations: const [
+                    NavigationRailDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: Text('Conversas')),
+                    NavigationRailDestination(icon: Icon(Icons.camera_alt_outlined), selectedIcon: Icon(Icons.camera_alt), label: Text('Moments')),
+                    NavigationRailDestination(icon: Icon(Icons.shopping_bag_outlined), selectedIcon: Icon(Icons.shopping_bag), label: Text('Shop')),
+                    NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Ajustes')),
+                  ],
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(color: Color(0xFF7C3AED), shape: BoxShape.circle),
+                      child: const Center(child: Text('@', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))),
+                    ),
+                  ),
+                ),
+                // Sidebar List Area (The middle strip)
+                Container(
+                  width: 350,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: Colors.grey.shade200),
+                      right: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Scaffold(
+                    appBar: AppBar(
+                      title: Text(
+                        _selectedIndex == 0 ? 'Conversas' : 
+                        _selectedIndex == 1 ? 'Moments' : 
+                        _selectedIndex == 2 ? 'Shop' : 'Ajustes',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)
+                      ),
+                      actions: [
+                        if (_selectedIndex == 0)
+                          IconButton(
+                            icon: const Icon(Icons.add_comment_outlined), 
+                            onPressed: () => _handleFABAction()
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.search), 
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => SearchScreen(currentUserId: widget.currentUserId)),
+                            );
+                          }
+                        ),
+                      ],
+                      elevation: 0,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                    ),
+                    body: IndexedStack(
+                      index: _selectedIndex,
+                      children: [
+                        _buildChatList(true),
+                        _buildMomentsFeed(),
+                        _buildShoppingPlaceholder(),
+                        _buildSettingsList(),
+                      ],
+                    ),
+                  ),
+                ),
+                // Chat Detail Area (The large right side)
+                Expanded(
+                  child: _selectedContact != null
+                      ? ChatScreen(
+                          contact: _selectedContact!, 
+                          currentUserId: widget.currentUserId,
+                          isEmbedded: true,
+                          onBack: () => setState(() => _selectedContact = null),
+                        )
+                      : Container(
+                          color: const Color(0xFFF8F9FA),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))
+                                    ],
+                                  ),
+                                  child: const Text('@', style: TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED))),
+                                ),
+                                const SizedBox(height: 32),
+                                const Text('Arroba Messenger para Web', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.black87)),
+                                const SizedBox(height: 8),
+                                const Text('Envie e receba mensagens com segurança e rapidez.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Mobile View (Default)
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            title: const Text('Arroba', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24)),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search), 
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SearchScreen(currentUserId: widget.currentUserId)),
+                  );
+                }
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) {
+                  if (value == 'logout') _logout();
+                  if (value == 'refresh') _loadData();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'refresh', child: Text('Atualizar')),
+                  const PopupMenuItem(value: 'logout', child: Text('Sair da Conta', style: TextStyle(color: Colors.red))),
+                ],
+              ),
+            ],
+            elevation: 0,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'logout') _logout();
-              if (value == 'refresh') _loadData();
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'refresh', child: Text('Atualizar')),
-              const PopupMenuItem(value: 'logout', child: Text('Sair da Conta', style: TextStyle(color: Colors.red))),
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              _buildChatList(false),
+              _buildMomentsFeed(),
+              _buildShoppingPlaceholder(),
+              _buildSettingsList(),
             ],
           ),
-        ],
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildChatList(),
-          _buildMomentsFeed(),
-          _buildShoppingPlaceholder(),
-          _buildSettingsList(),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF7C3AED),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Conversas'),
-          BottomNavigationBarItem(icon: Icon(Icons.camera_alt_outlined), activeIcon: Icon(Icons.camera_alt), label: 'Moments'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Shop'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Ajustes'),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_selectedIndex == 1) {
-            // Moments tab
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CreateMomentScreen(currentUserId: widget.currentUserId),
-              ),
-            );
-          } else if (_selectedIndex == 0) {
-            // Chats tab -> Go to contacts
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ContactsScreen(currentUserId: widget.currentUserId),
-              ),
-            ).then((_) => _loadChats()); // Atualiza ao voltar
-          }
-        },
-        backgroundColor: const Color(0xFF7C3AED),
-        child: Icon(
-          _selectedIndex == 1 ? Icons.camera_alt : Icons.add_comment,
-          color: Colors.white,
-        ),
-      ),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _selectedIndex,
+            onTap: (index) => setState(() => _selectedIndex = index),
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: const Color(0xFF7C3AED),
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Conversas'),
+              BottomNavigationBarItem(icon: Icon(Icons.camera_alt_outlined), activeIcon: Icon(Icons.camera_alt), label: 'Moments'),
+              BottomNavigationBarItem(icon: Icon(Icons.shopping_bag_outlined), activeIcon: Icon(Icons.shopping_bag), label: 'Shop'),
+              BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Ajustes'),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _handleFABAction(),
+            backgroundColor: const Color(0xFF7C3AED),
+            child: Icon(
+              _selectedIndex == 1 ? Icons.camera_alt : Icons.add_comment,
+              color: Colors.white,
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildChatList() {
+  void _handleFABAction() {
+    if (_selectedIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => CreateMomentScreen(currentUserId: widget.currentUserId)),
+      );
+    } else if (_selectedIndex == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ContactsScreen(currentUserId: widget.currentUserId)),
+      ).then((_) => _loadChats());
+    }
+  }
+
+  Widget _buildChatList(bool isEmbedded) {
     if (_isLoadingChats) return const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)));
     if (_chats.isEmpty) return const Center(child: Text('Nenhuma conversa ainda.', style: TextStyle(color: Colors.grey)));
 
@@ -184,14 +304,18 @@ class _HomeScreenState extends State<HomeScreen> {
             bio: null,
           );
           
+          final bool isSelected = _selectedContact?.id == contactUser.id;
+
           return ListTile(
+            selected: isSelected,
+            selectedTileColor: const Color(0xFFF3F0FF),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
               radius: 28,
-              backgroundColor: const Color(0xFFEDE9FE),
+              backgroundColor: isSelected ? const Color(0xFF7C3AED) : const Color(0xFFEDE9FE),
               child: Text(
                 contactUser.username[0].toUpperCase(),
-                style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold),
+                style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF7C3AED), fontWeight: FontWeight.bold),
               ),
             ),
             title: Text(
@@ -222,12 +346,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatScreen(contact: contactUser, currentUserId: widget.currentUserId),
-                ),
-              ).then((_) => _loadChats());
+              if (isEmbedded) {
+                setState(() => _selectedContact = contactUser);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(contact: contactUser, currentUserId: widget.currentUserId),
+                  ),
+                ).then((_) => _loadChats());
+              }
             },
           );
         },

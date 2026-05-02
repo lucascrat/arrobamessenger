@@ -6,8 +6,16 @@ import '../services/api_service.dart';
 class ChatScreen extends StatefulWidget {
   final User contact;
   final String currentUserId;
+  final bool isEmbedded;
+  final VoidCallback? onBack;
   
-  const ChatScreen({super.key, required this.contact, required this.currentUserId});
+  const ChatScreen({
+    super.key, 
+    required this.contact, 
+    required this.currentUserId,
+    this.isEmbedded = false,
+    this.onBack,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -22,6 +30,23 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _initChat();
+  }
+
+  @override
+  void didUpdateWidget(ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.contact.id != widget.contact.id) {
+      _socketService.disconnect();
+      _initChat();
+    }
+  }
+
+  void _initChat() {
+    setState(() {
+      _messages = [];
+      _isLoading = true;
+    });
     _loadHistory();
     _setupSocket();
   }
@@ -62,10 +87,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    // Send via socket
     _socketService.sendMessage(widget.currentUserId, widget.contact.id, text);
     
-    // Add locally immediately for better UX
     setState(() {
       _messages.add({
         'text': text,
@@ -88,10 +111,13 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        titleSpacing: 0,
+        titleSpacing: widget.isEmbedded ? 16 : 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
+        leading: widget.isEmbedded 
+          ? (widget.onBack != null ? IconButton(icon: const Icon(Icons.close), onPressed: widget.onBack) : null)
+          : null,
         title: Row(
           children: [
             CircleAvatar(
@@ -100,15 +126,22 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Text(widget.contact.username[0].toUpperCase(), style: const TextStyle(fontSize: 14, color: Color(0xFF7C3AED))),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('@${widget.contact.username}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const Text('Online', style: TextStyle(fontSize: 12, color: Colors.green)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('@${widget.contact.username}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                  const Text('Online', style: TextStyle(fontSize: 12, color: Colors.green)),
+                ],
+              ),
             ),
           ],
         ),
+        actions: [
+          IconButton(icon: const Icon(Icons.videocam_outlined), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.call_outlined), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.info_outline), onPressed: () {}),
+        ],
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
@@ -117,7 +150,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  reverse: true, // we reverse it to keep newest at bottom visually if we build list differently, or just use normal if list is chronological.
+                  reverse: true,
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final msg = _messages[_messages.length - 1 - index];
@@ -138,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * (widget.isEmbedded ? 0.45 : 0.75)),
         decoration: BoxDecoration(
           color: isMe ? const Color(0xFF7C3AED) : Colors.white,
           borderRadius: BorderRadius.only(
